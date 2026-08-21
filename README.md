@@ -1,59 +1,41 @@
 # phonon-unfolding
 
-Phonon band unfolding for chemically disordered (SQS) supercells, applied to
-high-entropy rocksalt oxides.
+Phonon band unfolding for chemically disordered special quasirandom structure (SQS) supercells, applied 
+to high-entropy rocksalt oxides.
 
-Multi-cation rocksalt oxides (e.g. (Mg,Co,Ni,Cu,Zn)O-type high-entropy
-oxides) have no periodic primitive cell once disorder is introduced, so a
-phonon calculation on an SQS supercell produces a dense, hard-to-interpret
-band structure with 3N branches instead of a clean 6-branch dispersion. Band
-unfolding recovers a spectral function A(q, ω) on the *parent* primitive
-Brillouin zone, projecting the supercell modes back onto primitive-cell
-wavevectors so the result can be compared directly to the parent compound's
-phonons (and, in principle, to inelastic scattering/EELS measurements). The
-unfolding implementation follows the spectral-weight formalism of Allen et
-al. (Phys. Rev. B 87, 085322 (2013)), generalized to a multi-atom primitive
-basis and resolved by sublattice, so mass/force-constant disorder shared
-across chemically distinct species on the same site is captured correctly.
+Multi-cation rocksalt oxides have no periodic primitive cell once disorder is introduced, so a phonon calculation on an SQS supercell produces a dense, hard-to-interpret band structure with 3N branches instead of a clean 6-branch dispersion. Band unfolding recovers a spectral function A(q, ω) on the *parent* primitive Brillouin zone, projecting the supercell modes back onto primitive-cell wavevectors 
+so the result can be compared directly to the parent compound's phonons (and, in principle, to inelastic scattering/EELS measurements). The unfolding implementation follows the spectral-weight formalism of 
+Allen et al. (Phys. Rev. B 87, 085322 (2013)), generalized to a multi-atom primitive basis and resolved 
+by sublattice, so mass/force-constant disorder shared across chemically distinct species on the same site is captured correctly.
 
 ## Pipeline
 
 ```
-generate_sqs.py                    build a cubic rocksalt SQS via icet
+generate_sqs.py                         build a cubic rocksalt SQS via icet
         │
         ▼
-00_relax_structure_chgnet.py       relax positions + cell with CHGNet
+00_relax_structure_chgnet.py            relax positions + cell with CHGNet
         │
         ▼
-make_ideal_primitive.py            build the ideal primitive cell to unfold onto
+make_ideal_primitive.py                 build the ideal primitive cell to unfold onto
         │
         ▼
-01_compute_force_constants_chgnet.py   phonopy finite-displacement force constants (CHGNet)
+01_compute_force_constants_chgnet.py    phonopy finite-displacement force constants (CHGNet)
         │
         ▼
-02_run_unfolding.py                unfold + plot the spectral function
+02_run_unfolding.py                     unfold + plot the spectral function
 ```
 
-`unfold_core.py` and `unfold_setup.py` hold the unfolding math and are
-imported by `02_run_unfolding.py`; they don't need editing. Each other script
-has a small `# ---- EDIT THESE ----` block of parameters at the top and reads
-the previous script's output file by default.
+`unfold_core.py` and `unfold_setup.py` hold the unfolding math and are imported by `02_run_unfolding.py`; they don't need editing. Each other script has a small block of parameters at the top and reads the previous script's output file by default.
 
-`01_compute_force_constants_chgnet.py` is the only compute-heavy step
-(finite-displacement forces, scaling with atom count x number of
-displacements) - worth a GPU for a full-size supercell. Everything else runs
-in seconds to minutes on CPU, which makes it cheap to iterate on just the
-unfolding step: re-plotting with different styling, trying a different
-primitive-cell convention, or unfolding a new SQS structure without
-recomputing force constants.
+`01_compute_force_constants_chgnet.py` is the only CPU-heavy step (finite-displacement forces, scaling with atom count x number of displacements) - worth a GPU for a full-size supercell. Everything else runs in secs to mins on CPU, which makes it cheap to iterate on just the unfolding step: re-plotting with different styling, trying a different primitive-cell convention, or unfolding a new SQS structure without recomputing force constants.
 
 ## Usage
 
-Run in order, in the same working directory (each script's output feeds the
-next one's input):
+Run in order, in the same working directory (each script's output feeds the next one's input):
 
-0. **`generate_sqs.py`** *(skip if you already have an SQS structure)* -
-   generates a cubic rocksalt SQS via `icet` for a given cation composition.
+0. **`generate_sqs.py`** *(skip if an SQS already exists)* - generates a cubic 
+   rocksalt SQS via `icet` for a given cation composition.
    `pip install icet` first.
 1. **`00_relax_structure_chgnet.py`** - relaxes atomic positions + cell with
    CHGNet. `PRESERVE_CELL_SHAPE = True` (default) keeps the cell shape fixed
@@ -72,19 +54,16 @@ next one's input):
 
 | File | Purpose |
 |---|---|
-| `generate_sqs.py` | Build a cubic rocksalt SQS via `icet` for a given cation composition |
-| `00_relax_structure_chgnet.py` | Relax an SQS structure with CHGNet (positions + optionally cell shape/volume) |
-| `make_ideal_primitive.py` | Build the ideal primitive cell to unfold onto, from the relaxed structure |
-| `unfold_core.py` | Core unfolding math (spectral-weight / Allen et al. formalism) |
-| `unfold_setup.py` | Helpers: find the primitive→supercell transformation matrix, assign atoms to sublattices |
-| `01_compute_force_constants_chgnet.py` | Compute phonopy force constants for the relaxed SQS cell via CHGNet |
-| `02_run_unfolding.py` | Run the unfolding along a q-path and plot the spectral function |
-| `validation_plot.png` | Reference: the unfolding math correctly reproduces exact primitive-cell phonons for a disorder-free test case (see Validation below) |
+| `generate_sqs.py` | build a cubic rocksalt SQS via `icet` for a given cation composition |
+| `00_relax_structure_chgnet.py` | relax an SQS structure with CHGNet (positions + optionally cell shape/volume) |
+| `make_ideal_primitive.py` | build the ideal primitive cell to unfold onto, from the relaxed structure |
+| `unfold_core.py` | core unfolding math (spectral-weightformalism) |
+| `unfold_setup.py` | helpers: find the primitive→supercell transformation matrix, assign atoms to sublattices |
+| `01_compute_force_constants_chgnet.py` | compute force constants for the relaxed SQS cell via CHGNet |
+| `02_run_unfolding.py` | run the unfolding along a q-path and plot the spectral function |
+| `validation_plot.png` | ref: the unfolding math correctly reproduces exact primitive-cell phonons for a disorder-free test case (see Validation below) |
 
-## What to watch for
-
-The pipeline self-diagnoses several common failure modes by printing
-diagnostics - worth reading rather than skipping past:
+The pipeline self-diagnoses several common failure modes by printing diagnostics:
 
 - **Cation/anion counts should match the expected stoichiometry** (e.g.
   roughly equal for 1:1 rocksalt). Printed by `make_ideal_primitive.py`.
