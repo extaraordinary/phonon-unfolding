@@ -1,25 +1,25 @@
 """
-Step 2: unfold your SQS (J14 / J14+Cr) phonon force constants onto the
-primitive rocksalt Brillouin zone, and plot the resulting spectral function
-A(q, omega) as a heatmap alongside the parent-compound bands for comparison.
+Step 4: unfold an SQS structure's phonon force constants onto the primitive
+rocksalt Brillouin zone, and plot the resulting spectral function A(q,omega) 
+as a heatmap.
 
 Inputs:
   - PRIM_STRUCTURE: an ideal rocksalt primitive cell (2 atoms if built via
     "cubic_guess" mode, or 8 atoms/conventional cell if built via
-    "known_transformation" mode - make_ideal_primitive.py handles both and
+    "known_transformation" mode - make_ideal_primitive.py handles both, and
     this script reads whichever it produced directly from the file, no
     changes needed here either way) to unfold onto. Use a lattice parameter
-    representative of your SQS cell, NOT necessarily pure MgO's literature
-    value - this keeps q-points defined consistently with the actual
-    supercell you're unfolding.
+    representative of the actual SQS cell, not necessarily a literature value
+    for the parent compound - this keeps q-points defined consistently with
+    the supercell being unfolded.
   - SQS_PHONOPY_YAML: output of 01_compute_force_constants_chgnet.py (or an
-    equivalent phonopy_params.yaml with force_constants written out from your
-    atomate2/PhononMaker CHGNet run).
-  - CATION_SPECIES / ANION_SPECIES: which chemical symbols in your SQS belong
-    to the cation sublattice (Mg, Co, Ni, Cu, Zn, Cr for J14+Cr) vs the anion
-    sublattice (O). Unfolding groups ALL cation-site atoms together as "site
-    0" regardless of which of the 6 species sits there - the chemical/mass
-    disorder is exactly what produces the spectral broadening you're after.
+    equivalent phonopy_params.yaml with force_constants written out from an
+    atomate2/PhononMaker run).
+  - CATION_SPECIES / ANION_SPECIES: which chemical symbols in the SQS belong
+    to the cation sublattice vs. the anion sublattice. Unfolding groups all
+    cation-site atoms together as "site 0" regardless of which species sits
+    there - the chemical/mass disorder across those species is exactly what
+    produces the spectral broadening this analysis is meant to reveal.
 """
 import numpy as np
 import matplotlib.pyplot as plt
@@ -32,10 +32,10 @@ from phonopy.interface.phonopy_yaml import PhonopyYaml
 from unfold_core import spectral_weights
 from unfold_setup import find_transformation_matrix, assign_sublattices
 
-# ---- EDIT THESE ----
+# ---------------------
 PRIM_STRUCTURE = "rocksalt_primitive.vasp"   # 2-atom ideal rocksalt cell (cation, anion)
-SQS_PHONOPY_YAML = "J14_phonopy_params.yaml"
-CATION_SPECIES = {"Mg", "Co", "Ni", "Cu", "Zn"}       # add "Cr" for the J14+Cr file
+SQS_PHONOPY_YAML = "phonopy_params.yaml"
+CATION_SPECIES = {"Mg", "Co", "Ni", "Cu", "Zn"}
 ANION_SPECIES = {"O"}
 Q_PATH = "GXWKGL"          # standard FCC/rocksalt path; set to None to
                             # auto-detect the correct path for a non-cubic
@@ -46,7 +46,7 @@ Q_PATH = "GXWKGL"          # standard FCC/rocksalt path; set to None to
 N_POINTS_PER_SEGMENT = 40
 SIGMA_THZ = 0.15           # Gaussian broadening width for the spectral function
 FREQ_MAX_THZ = 20.0
-OUTPUT_PREFIX = "J14_unfolded"
+OUTPUT_PREFIX = "unfolded"
 SPECTRAL_COLOR = "#08306b"  # dark navy; try "#67000d" (dark red) or
                              # "#00441b" (dark green) for a different accent
 SPECTRAL_GAMMA = 0.5        # PowerNorm(gamma<1) stretches the low end of the
@@ -88,10 +88,10 @@ def main():
     n_anion = np.sum(sub == 1)
     print(f"Assigned {n_cation} atoms to cation sublattice, "
           f"{n_anion} to anion sublattice "
-          f"(expect ratio matching your primitive cell, e.g. 1:1 for rocksalt)")
+          f"(expect a ratio matching the primitive cell, e.g. 1:1 for rocksalt)")
 
-    # --- build the primitive-cell q-path using ASE (uses the *primitive* cell
-    # you supplied, so labeled points are correct for this specific lattice) ---
+    # --- build the primitive-cell q-path using ASE (uses the primitive cell
+    # supplied above, so labeled points are correct for this specific lattice) ---
     cell = Cell(A_prim)
     n_segments = (len(Q_PATH) - 1) if Q_PATH is not None else 5  # rough default
     try:

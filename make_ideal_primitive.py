@@ -4,9 +4,9 @@ Build the ideal rocksalt primitive cell to unfold onto.
 Two modes, controlled by MODE below:
 
 MODE = "cubic_guess" (default, use this first)
-    Backs out a single scalar lattice parameter from your relaxed SQS
+    Backs out a single scalar lattice parameter from the relaxed SQS
     structure's volume, assuming a 1:1 cation:anion rocksalt stoichiometry
-    (true for J14/J14+Cr) and a cubic cell shape:
+    and a cubic cell shape:
 
         a_conventional = (4 * V_cell / n_formula_units) ** (1/3)
 
@@ -14,40 +14,39 @@ MODE = "cubic_guess" (default, use this first)
     conventional cubic cell, which holds 4 formula units - matching what
     ase.build.bulk(..., crystalstructure='rocksalt', a=...) expects).
 
-    This mode AUTOMATICALLY CHECKS whether your relaxed SQS cell is actually
+    This mode automatically checks whether the relaxed SQS cell is actually
     close enough to this cubic guess to be unfoldable at all (i.e. whether
-    A_sc really is close to an integer multiple of the cubic guess). If your
+    A_sc really is close to an integer multiple of the cubic guess). If the
     relaxation used PRESERVE_CELL_SHAPE = True in 00_relax_structure_chgnet.py
-    (the default there), this will always pass, since the cell shape never
-    had the chance to distort. If you relaxed with the cell shape fully free
-    and it drifted away from cubic (angles != 90 deg / unequal axis lengths,
-    which CAN happen for a low-symmetry SQS with no constraint holding it
-    cubic), this check will fail with a clear error - switch to MODE =
+    (the default there), this check always passes, since the cell shape never
+    had the chance to distort. If the cell shape was left fully free and it
+    drifted away from cubic (angles != 90 deg / unequal axis lengths, which
+    can happen for a low-symmetry SQS with nothing constraining it to stay
+    cubic), this check fails with a clear error - switch to MODE =
     "known_transformation" below.
 
 MODE = "known_transformation"
-    For a relaxed SQS cell that is genuinely NOT close to cubic. Rather than
+    For a relaxed SQS cell that is genuinely not close to cubic. Rather than
     guessing a shape, this recovers the primitive cell directly and exactly
-    from your ACTUAL relaxed (possibly anisotropic) supercell lattice, using
+    from the actual relaxed (possibly anisotropic) supercell lattice, using
     the integer supercell matrix M that was used when the SQS was originally
-    built (e.g. from your mcsqs/ATAT generation records, or computed from the
-    UNRELAXED SQS structure against an ideal cubic reference, since before
+    built (e.g. from mcsqs/ATAT generation records, or computed from the
+    unrelaxed SQS structure against an ideal cubic reference, since before
     relaxation an SQS is exactly commensurate with its ideal parent lattice
     by construction). Given M:
 
         A_primitive = inv(M) @ A_supercell_relaxed
 
-    This is exact for ANY cell shape - no cubic assumption at all. The
+    This is exact for any cell shape - no cubic assumption at all. The
     downstream unfolding code (unfold_core.py, unfold_setup.py) never assumed
-    cubic either; it was really only this "guess a scalar a" shortcut that
-    needed it. Set KNOWN_M below (as a 3x3 nested list/array) to use this.
+    a cubic cell either; only this "guess a scalar a" shortcut needs it. Set
+    KNOWN_M below (as a 3x3 nested list/array) to use this.
 
-    KNOWN_M may be defined relative to EITHER the 2-atom rhombohedral
-    primitive cell (1 formula unit) OR the conventional 4-formula-unit
-    cubic cell (8 atoms) - both are common conventions. This is detected
-    automatically from the recovered cell's angles (~60 deg vs ~90 deg),
-    so you don't need to know or track which one your SQS-generation
-    workflow used.
+    KNOWN_M may be defined relative to either the 2-atom rhombohedral
+    primitive cell (1 formula unit) or the conventional 4-formula-unit cubic
+    cell (8 atoms) - both are common conventions. This is detected
+    automatically from the recovered cell's angles (~60 deg vs ~90 deg), so
+    you don't need to track which one your SQS-generation workflow used.
 """
 import numpy as np
 from ase import Atoms
@@ -57,9 +56,9 @@ from ase.build import bulk
 from unfold_setup import find_transformation_matrix
 
 # ---- EDIT THESE ----
-RELAXED_STRUCTURE = "J14_SQS_relaxed.vasp"
+RELAXED_STRUCTURE = "sqs_relaxed.vasp"
 OUTPUT_PRIMITIVE = "rocksalt_primitive.vasp"
-CATION_SPECIES = {"Mg", "Co", "Ni", "Cu", "Zn"}   # add "Cr" for the J14+Cr file
+CATION_SPECIES = {"Mg", "Co", "Ni", "Cu", "Zn"}
 ANION_SPECIES = {"O"}
 # use a real cation/anion symbol present in CATION_SPECIES/ANION_SPECIES here -
 # it only serves as a label so 02_run_unfolding.py can tell cation and anion
@@ -96,9 +95,9 @@ def build_cubic_guess(sqs, n_formula_units):
     prim = bulk(f"{PRIMITIVE_CATION_LABEL}{PRIMITIVE_ANION_LABEL}",
                 crystalstructure="rocksalt", a=a_conventional)
 
-    # sanity check: is the relaxed cell actually close to this cubic guess?
-    # (this is the same check 02_run_unfolding.py will do anyway - doing it
-    # here first gives a clearer, earlier error message)
+    # Sanity check: is the relaxed cell actually close to this cubic guess?
+    # (02_run_unfolding.py performs the same check anyway - doing it here
+    # first gives a clearer, earlier error message.)
     try:
         find_transformation_matrix(prim.cell.array, sqs.cell.array, tol=1e-2)
     except ValueError:
@@ -119,16 +118,16 @@ def build_from_known_transformation(sqs, M):
     M = np.asarray(M)
     A_prim = np.linalg.inv(M) @ sqs.cell.array
 
-    # KNOWN_M may have been defined relative to EITHER the 2-atom
-    # rhombohedral primitive cell (1 formula unit, ~60 deg angles) OR the
+    # KNOWN_M may have been defined relative to either the 2-atom
+    # rhombohedral primitive cell (1 formula unit, ~60 deg angles) or the
     # conventional 4-formula-unit cubic cell (8 atoms, ~90 deg angles) -
-    # both are common conventions depending on how your SQS was built.
-    # Getting this wrong silently generates the wrong number of ideal
-    # sites downstream in unfold_setup.assign_sublattices (missing 3 out
-    # of 4 cation AND anion sites for the conventional case), which shows
-    # up as a large fraction of atoms being reported "far from their
-    # nearest ideal site" - detect which convention this actually is from
-    # the recovered cell's angles rather than assuming one.
+    # both are common conventions depending on how the SQS was built. Getting
+    # this wrong silently generates the wrong number of ideal sites
+    # downstream in unfold_setup.assign_sublattices (missing 3 out of 4
+    # cation and anion sites for the conventional case), which shows up as a
+    # large fraction of atoms reported "far from their nearest ideal site" -
+    # so this detects which convention applies from the recovered cell's
+    # angles rather than assuming one.
     angles = np.array(Atoms(cell=A_prim, pbc=True).cell.cellpar()[3:])
     if np.allclose(angles, 60, atol=5):
         print("Recovered cell angles are ~60 deg: treating A_prim as the "
@@ -152,7 +151,7 @@ def build_from_known_transformation(sqs, M):
     print(f"Recovered (possibly non-cubic) primitive cell from known M:\n{A_prim}")
     print(f"Cell parameters (a,b,c,alpha,beta,gamma): "
           f"{np.round(prim.cell.cellpar(), 4)}")
-    # this should now match M exactly by construction
+    # This should now match M exactly, by construction.
     find_transformation_matrix(prim.cell.array, sqs.cell.array, tol=1e-6)
     return prim
 

@@ -1,8 +1,9 @@
-"""Core phonon band-unfolding implementation (Allen et al., PRB 87, 085322 (2013)
+"""
+Core phonon band-unfolding implementation (Allen et al., PRB 87, 085322 (2013)
 formalism, generalized to a multi-atom primitive basis).
 
 Given supercell phonon eigenvectors/frequencies (from a phonopy Phonopy object
-whose `unitcell` IS the supercell/SQS structure, i.e. primitive_matrix = identity),
+whose `unitcell` is the supercell/SQS structure, i.e. primitive_matrix = identity),
 this computes the spectral weight of each supercell mode onto a target primitive-
 cell wavevector q, resolved by primitive sublattice (e.g. cation site / anion site).
 """

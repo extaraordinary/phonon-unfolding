@@ -1,11 +1,12 @@
-"""Setup helpers for unfolding a real SQS structure onto a reference 
-primitive rocksalt cell.
+"""
+Setup helpers for unfolding a real SQS structure onto a reference primitive 
+rocksalt cell.
 
-These handle the two "bookkeeping" steps that are specific to your real
-structures (as opposed to the toy validation case): finding the integer
-transformation matrix M between your reference primitive cell and the SQS
-supercell, and figuring out which SQS atom sits on which ideal primitive site
-(cation sublattice vs anion sublattice), independent of chemical species.
+These handle two "bookkeeping" steps needed for real structures (as opposed
+to a toy validation case): finding the integer transformation matrix M
+between the reference primitive cell and the SQS supercell, and figuring out
+which SQS atom sits on which ideal primitive site (cation sublattice vs.
+anion sublattice), independent of chemical species.
 """
 import numpy as np
 
@@ -81,14 +82,14 @@ def assign_sublattices(sc_scaled_positions, sc_cell, prim_positions_cart,
 
     ideal_images_cart = []
     ideal_images_label = []
-    # A_sc = M @ A_prim  =>  A_prim = inv(M) @ A_sc  (matrix multiplication
-    # is not commutative - this must be left-multiplication by inv(M).
-    # Using A_sc @ inv_M here instead is a real bug that stays silently
-    # invisible whenever M is a scalar multiple of the identity, since
-    # scalar matrices commute with anything - it only surfaces for a
-    # genuinely non-uniform M, e.g. [[4,0,0],[0,4,0],[0,0,2]]. Caught via
-    # an end-to-end validation test against an independent ground-truth
-    # calculation before this fix was made.)
+    # A_sc = M @ A_prim  =>  A_prim = inv(M) @ A_sc. Matrix multiplication is
+    # not commutative, so this must be left-multiplication by inv(M); using
+    # A_sc @ inv_M instead is a real bug that stays silently invisible
+    # whenever M is a scalar multiple of the identity (scalar matrices
+    # commute with anything) and only surfaces for a genuinely non-uniform M,
+    # e.g. [[4,0,0],[0,4,0],[0,0,2]]. Caught by an end-to-end validation test
+    # against an independent ground-truth calculation - see the Validation
+    # section of the README.
     A_prim = inv_M @ sc_cell
     for i in n_range:
         for j in n_range:
