@@ -32,8 +32,6 @@ make_ideal_primitive.py                 build the ideal primitive cell to unfold
 
 ## Usage
 
-Run in order, in the same working directory (each script's output feeds the next one's input):
-
 0. **`generate_sqs.py`** *(skip if an SQS already exists)* - generates a cubic 
    rocksalt SQS via `icet` for a given cation composition.
    `pip install icet` first.
@@ -84,8 +82,7 @@ The pipeline self-diagnoses several common failure modes by printing diagnostics
 
 ## Key technical notes
 
-A few non-obvious things came up while building this pipeline, worth knowing
-if you modify the code:
+A few non-obvious things came up while building this pipeline that are worth noting:
 
 - **`phonon.primitive` vs. `phonon.supercell`.**
   Some phonon workflow tools (e.g. atomate2's `PhononMaker`) can expand an
